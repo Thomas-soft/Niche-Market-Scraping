@@ -25,7 +25,7 @@ def configure_geolocation(driver, latitude, longitude, accuracy=100):
     Configure the geolocation of the WebDriver.
     """
     if latitude is not None and longitude is not None:
-        set_geolocation(driver, latitude, longitude)
+        set_geolocation(driver, latitude, longitude, accuracy)
         console.print(f"Géolocalisation fixée sur : Latitude {latitude}, Longitude {longitude}")
     else:
         lat, lon = get_current_location()

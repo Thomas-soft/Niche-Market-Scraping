@@ -9,6 +9,7 @@ from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 from utils.output import welcome_message, finished_info
 from utils.cookies import refuse_cookies
 from utils.errors import element_not_found_error
+from data.save_to_csv import save_results
 
 
 def run_bot(driver, search_query, number_of_sites):
@@ -30,7 +31,7 @@ def run_bot(driver, search_query, number_of_sites):
     driver.get(search_query)
     refuse_cookies(driver)
     sites = []  # List to store the found sites
-    time.sleep(3)  # Wait for the page to load
+    time.sleep(5)  # Wait for the page to load
     with Progress(
         SpinnerColumn(),
         "[progress.description]{task.description}",
@@ -63,9 +64,15 @@ def run_bot(driver, search_query, number_of_sites):
                     next_button = WebDriverWait(driver, 10).until(
                         EC.element_to_be_clickable((By.ID, "pnnext"))
                     )
+                    next_button.rect['height'] = 10
+                    next_button.rect['width'] = 10
                     next_button.click()
                 except TimeoutException as e:
                     element_not_found_error(f"Unable to navigate to the next page after waiting 10 seconds: {e}")
 
     console.print(Panel("\n".join(sites), title="Found Sites", expand=False))
+
+    # Save the results to a CSV file
+    save_results(sites, filename="data.csv")
+
     finished_info()

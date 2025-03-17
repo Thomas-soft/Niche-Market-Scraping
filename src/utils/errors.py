@@ -21,7 +21,7 @@ def must_be_integer_error():
     """
     Display an error message when the number of sites is not an integer.
     """
-    console.print("[red]Erreur:[/red] The number of sites must be an integer.")
+    console.print("[red]Error:[/red] The number of sites must be an integer.")
     sys.exit(1)
 
 
@@ -29,7 +29,7 @@ def must_be_float_error():
     """
     Display an error message when the latitude and longitude are not floats.
     """
-    console.print("[red]Erreur:[/red] Latitude and longitude must be floats.")
+    console.print("[red]Error:[/red] Latitude and longitude must be floats.")
     sys.exit(1)
 
 
@@ -37,5 +37,13 @@ def element_not_found_error(reason):
     """
     Display an error message when an element is not found.
     """
-    console.print(f"[red]Erreur:[/red] Element not found.\nReason: {reason}")
+    console.print(f"[red]Error:[/red] Element not found.\nReason: {reason}")
+    sys.exit(1)
+
+
+def save_error(reason):
+    """
+    Display an error message when the results cannot be saved.
+    """
+    console.print("[red]Error:[/red] Unable to save the results.\nReason: {reason}")
     sys.exit(1)
