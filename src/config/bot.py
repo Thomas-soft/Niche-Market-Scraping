@@ -11,7 +11,7 @@ def create_instance():
     """
     options = uc.ChromeOptions()
     options.add_argument("--start-maximized")
-    options.add_argument("--headless")
+    # options.add_argument("--headless")
     driver = None
     if sys.platform != "Darwin":
         driver = uc.Chrome(options=options)

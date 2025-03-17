@@ -31,3 +31,11 @@ def must_be_float_error():
     """
     console.print("[red]Erreur:[/red] Latitude and longitude must be floats.")
     sys.exit(1)
+
+
+def element_not_found_error(reason):
+    """
+    Display an error message when an element is not found.
+    """
+    console.print(f"[red]Erreur:[/red] Element not found.\nReason: {reason}")
+    sys.exit(1)

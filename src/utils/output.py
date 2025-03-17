@@ -32,4 +32,4 @@ def finished_info():
     """
     Display a process finished message in a panel.
     """
-    console.print(Panel("[bold green]Scraping finished![/bold green]", title="[bold blue]End of process[/bold blue]", expand=False))
+    console.print(Panel("[bold]Scraping finished![/bold]", title="[bold blue]End of process[/bold blue]", expand=False))
