@@ -17,7 +17,6 @@ def save_results(results, filename="data.csv"):
     directory = os.path.dirname(filename)
     if directory and not os.path.exists(directory):
         os.makedirs(directory)
-
     try:
         with open(filename, mode="w", newline="", encoding="utf-8") as csvfile:
             writer = csv.writer(csvfile)
