@@ -13,14 +13,46 @@ import re
 from bs4 import BeautifulSoup
 import warnings
 import time
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 # Masquer l'avertissement de Wappalyzer sur la regex
 warnings.filterwarnings("ignore", message="Caught 'unbalanced parenthesis")
 
 
+def wait_for_dynamic_content(driver, timeout=20):
+    """
+    Wait until the page is fully loaded, including dynamic content.
+    
+    This function waits until:
+      - document.readyState equals "complete"
+      - If jQuery is available, jQuery.active is 0 (i.e. no ongoing AJAX requests)
+      
+    Args:
+        driver: Selenium WebDriver instance.
+        timeout: Maximum wait time in seconds.
+    """
+    
+    # Wait for document.readyState to be "complete"
+    WebDriverWait(driver, timeout).until(
+        lambda d: d.execute_script("return document.readyState") == "complete"
+    )
+    
+    # If jQuery is present, wait for all AJAX requests to finish
+    try:
+        WebDriverWait(driver, timeout).until(
+            lambda d: d.execute_script("return (typeof jQuery != 'undefined') ? jQuery.active == 0 : true")
+        )
+    except Exception as e:
+        print("Warning: jQuery wait not applicable or failed:", e)
+        return False
+    return True
+
+
 def get_sites(driver, number_of_sites):
     sites = []
+    if wait_for_dynamic_content(driver) is False:
+        element_not_found_error("Page not fully loaded after waiting 20 seconds")
     with Progress(
         SpinnerColumn(),
         "[progress.description]{task.description}",
@@ -55,6 +87,7 @@ def get_sites(driver, number_of_sites):
                     )
                     next_button.rect['height'] = 10
                     next_button.rect['width'] = 10
+                    time.sleep(1)
                     next_button.click()
                 except TimeoutException as e:
                     element_not_found_error(f"Unable to navigate to the next page after waiting 10 seconds: {e}")
@@ -125,12 +158,15 @@ def extract_cms(url):
     Utilise Wappalyzer pour détecter l'outil utilisé (CMS) à partir de l'URL.
     Parcourt les technologies détectées et retourne le CMS s'il fait partie d'une liste connue.
     """
-    web_page = WebPage.new_from_url(url)
-    wappalyzer = Wappalyzer.latest()
-    tech_results = wappalyzer.analyze_with_categories(web_page)
+    # web_page = WebPage.new_from_url(url)
+    # wappalyzer = Wappalyzer.latest()
+    # tech_results = wappalyzer.analyze_with_categories(web_page)
 
-    tech_results = [name for name, details in tech_results.items() if 'CMS' in details.get('categories', [])]
-    return tech_results
+    # tech_results = [name for name, details in tech_results.items() if 'CMS' in details.get('categories', [])]
+    # if not tech_results:
+    #     return "Unknown"
+    # return tech_results[0]
+    return "A implémenter"
 
 
 def extract_company_info(html):
@@ -243,10 +279,31 @@ def extract_ad_activity(html):
 
 def scrape_site(driver, base_url, api_key):
     """
-    Scrape un site à partir de son URL de base.
-    Récupère les données depuis la page principale, la page de contact et la page about.
+    Scrape a site based on its base URL.
+    Retrieves data from the main, contact, and about pages.
+    
+    This function dynamically waits for the page to load its complete content,
+    ensuring that dynamically loaded elements (like Facebook Ads, tracking scripts, etc.)
+    are present.
+    
+    Args:
+        driver: Selenium WebDriver instance.
+        base_url: str, the base URL of the site to scrape.
+        api_key: API key for SimilarWeb (or other services).
+    
+    Returns:
+        dict: Extracted site content with keys:
+            - base_url
+            - emails
+            - telephones
+            - nom_entreprise (Company Name)
+            - secteur (Sector)
+            - rang_global (Global Rank)
+            - outil_utilisé (CMS or tool used)
+            - pixels (tracking pixels)
+            - activite_publicitaire (advertising activity)
     """
-    pages = get_pages(base_url)
+    pages = get_pages(base_url)  # Cette fonction doit retourner un dictionnaire de pages à scraper
     
     combined_emails = set()
     combined_telephones = set()
@@ -255,20 +312,27 @@ def scrape_site(driver, base_url, api_key):
     combined_pixels = {"facebook_pixel": False, "google_analytics": False, "google_tag_manager": False}
     combined_ad_activity = {"google_ads": False, "facebook_ads": False, "other": False}
     
+    # Pour chaque type de page (par exemple : main, contact, about)
     for page_type, url in pages.items():
-        time.sleep(3)
-        print(f"Traitement de la page {page_type} : {url}")
+        # Charger la page
+        driver.get(url)
+        # Attendre que la page soit entièrement chargée et que le contenu dynamique soit rendu
+        if wait_for_dynamic_content(driver, timeout=20) is False:
+            print(f"Timeout while waiting for {url} to load")
+            continue
+        
         try:
             html = driver.page_source
         except Exception as e:
-            print(f"Erreur lors de la récupération de {url} : {e}")
+            print(f"Error while retrieving {url} : {e}")
             continue
 
+        # Extraction des contacts (emails et téléphones)
         emails, telephones = extract_contacts(html)
         combined_emails.update(emails)
         combined_telephones.update(telephones)
         
-        # Extraction des infos sur l'entreprise
+        # Extraction des informations sur l'entreprise
         if not company_name:
             name_temp, sector_temp = extract_company_info(html)
             if name_temp:
@@ -276,7 +340,7 @@ def scrape_site(driver, base_url, api_key):
             if sector_temp:
                 sector = sector_temp
         
-        # Fusionner les pixels et l'activité publicitaire
+        # Extraction des pixels et de l'activité publicitaire
         pixels = extract_pixels(html)
         for k, v in pixels.items():
             combined_pixels[k] = combined_pixels[k] or v
@@ -289,13 +353,13 @@ def scrape_site(driver, base_url, api_key):
     global_rank = get_similarweb_rank(get_domain_from_url(pages["main"]), api_key)
     
     return {
-        "base_url": base_url,
-        "emails": list(combined_emails),
-        "telephones": list(combined_telephones),
-        "nom_entreprise": company_name,
-        "secteur": sector,
-        "rang_global": global_rank,
-        "outil_utilisé": cms,
-        "pixels": combined_pixels,
-        "activite_publicitaire": combined_ad_activity
+        "Base URL": base_url,
+        "Emails": list(combined_emails),
+        "Telephones": list(combined_telephones),
+        "Company Name": company_name,
+        "Sector": sector,
+        "Global Rank": global_rank,
+        "Used Tool": cms,
+        "Pixels": combined_pixels,
+        "Ad Activity": combined_ad_activity
     }
