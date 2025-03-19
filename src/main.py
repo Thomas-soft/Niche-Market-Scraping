@@ -2,7 +2,7 @@ import os
 import sys
 from config.console import console
 from rich.panel import Panel
-from automation.bot import run_bot
+from automation.bot import run_bot1, run_bot2
 from utils.output import bot_configuration_info
 import utils.errors as error
 from utils.check_args import check_args
@@ -25,14 +25,16 @@ def main(search_query, number_of_sites, latitude=None, longitude=None):
 
     # Lancement du bot (fonction importée)
     bot_configuration_info(search_query, number_of_sites)
-
     # Configuration du webdriver
-    driver = create_instance()
-
+    driver = create_instance(headless=False)
     # Gestion de la géolocalisation
     configure_geolocation(driver, latitude, longitude)
-
-    run_bot(driver, search_query, number_of_sites)
+    run_bot1(driver, search_query, number_of_sites, file_to_save="output/data.csv")
+    driver.quit()
+    driver = create_instance(headless=True)
+    run_bot2(driver, data="output/data.csv", save_to_file="output/database.csv")
+    driver.quit()
+    console.print(Panel("Bot finished", title="Bot", expand=False))
 
 
 if __name__ == "__main__":

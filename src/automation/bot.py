@@ -10,10 +10,11 @@ from utils.output import welcome_message, finished_info
 from utils.cookies import refuse_cookies
 from utils.errors import element_not_found_error
 from data.save_to_csv import save_results
-from automation.scraping import get_sites
+from .scraping import get_sites, scrape_site
+import json
 
 
-def run_bot(driver, search_query, number_of_sites):
+def run_bot1(driver, search_query, number_of_sites, file_to_save):
     """
     Main function to run the bot.
     
@@ -32,5 +33,21 @@ def run_bot(driver, search_query, number_of_sites):
     driver.get(search_query)
     refuse_cookies(driver)
     sites = get_sites(driver, number_of_sites)
-    save_results(sites, filename="output/data.csv")
+    save_results(sites, filename=file_to_save)
     finished_info()
+
+
+def run_bot2(driver, data, save_to_file):
+    sites = [
+        "https://www.alexandrecoiffure-lh.fr",
+        "https://www.salon-bemyme.com",
+        "https://salons.coiffandco.com/fr/coiffeur/"
+    ]
+    # Remplacez par votre vraie clé API SimilarWeb
+    API_KEY_SIMILARWEB = "YOUR_API_KEY_HERE"
+    results = []
+    for site in sites:
+        print(f"Scraping {site} ...")
+        result = scrape_site(driver, site, API_KEY_SIMILARWEB)
+        results.append(result)
+    print(json.dumps(results, indent=4, ensure_ascii=False))

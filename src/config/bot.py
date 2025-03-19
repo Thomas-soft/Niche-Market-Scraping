@@ -5,13 +5,18 @@ from utils.localisation import get_current_location, set_geolocation
 import sys
 
 
-def create_instance():
+def create_instance(headless=False):
     """
     Create a new instance of the WebDriver.
     """
     options = uc.ChromeOptions()
-    options.add_argument("--start-maximized")
-    # options.add_argument("--headless")
+    if headless:
+        options.add_argument("--headless")           # Mode headless pour ne pas afficher le navigateur
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+    else:
+        options.add_argument("--start-maximized")
     driver = None
     if sys.platform != "Darwin":
         driver = uc.Chrome(options=options)
